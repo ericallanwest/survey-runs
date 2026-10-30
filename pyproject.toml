@@ -20,7 +20,11 @@ dependencies = [
 survey-runs = "survey_runs.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "altair>=6.3.0",
+    "marimo>=0.25.2",
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]

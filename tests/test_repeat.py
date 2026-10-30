@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from survey_runs.repeat import SEG_FT, brsd, icc, pair_in_order, unhold
+from survey_runs.pairing import SEG_FT, brsd, icc, pair_in_order, unhold
 
 ROAD = np.cumsum(np.random.default_rng(3).normal(0, 3, 200))     # the road's own variation
 

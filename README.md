@@ -1,5 +1,8 @@
 # Same road, different day
 
+**[Project page](https://ericallanwest.github.io/survey-runs/)** ·
+**[Repeatability lab](https://ericallanwest.github.io/survey-runs/lab/)** (runs in the browser)
+
 Two questions every road-survey program has to answer, worked end to end:
 
 1. **Year over year.** Has this stretch of road changed since last year's survey? Every year's runs
@@ -36,6 +39,7 @@ The simulator builds in the trouble real survey data has:
 | Simulate | `survey-runs simulate` | Builds the truth, chains routes into corridors across county lines, and drives five years of survey runs plus 180 repeat runs over six 3-mile reference sites. |
 | Year over year | `survey-runs analyze` | Matches every 26.4-ft segment to the LRS (route, measure, direction), builds the 0.005-mile year-over-year panel, checks each odometer against GPS, flags likely resurfacing, and scores it all against the truth. |
 | Repeatability | `survey-runs repeat` | Pairs the repeat runs four ways (odometer, GPS, LRS measure, and the truth as an oracle), then computes BRSD and ICC per site, year and basket of runs. |
+| Page data | `survey-runs site` | Writes `docs/data/` for the project page: the change map, route profiles, scores and repeatability views. |
 
 ## Results
 
@@ -75,10 +79,20 @@ uv run survey-runs network      # about a minute: pages through the public servi
 uv run survey-runs simulate     # about 20 s
 uv run survey-runs analyze      # about 5 min: 3.4 million segments
 uv run survey-runs repeat       # about 10 s
+uv run survey-runs site         # docs/data for the page
 uv run pytest
 ```
 
-Outputs land in `data/` (not tracked): `network.parquet`, `sim/`, `analysis/`.
+Outputs land in `data/` (not tracked): `network.parquet`, `sim/`, `analysis/`. `docs/data/` is
+tracked, so the page is reproducible from the repository.
+
+The lab is `notebooks/lab.py` (`uv run marimo edit notebooks/lab.py`). The Pages workflow exports
+it to WebAssembly together with this package's wheel, which the notebook installs in the browser:
+
+```sh
+uv build --wheel -o notebooks/public
+uv run marimo export html-wasm notebooks/lab.py -o docs/lab --mode run
+```
 
 ## Code
 
@@ -91,12 +105,18 @@ Outputs land in `data/` (not tracked): `network.parquet`, `sim/`, `analysis/`.
 | `match.py` | Segment-to-LRS matching, with held GPS fixes bridged by chainage |
 | `grid.py` | The year-over-year panel, odometer check and change detection |
 | `analyze.py` | Runs the year-over-year analysis and scores it |
-| `repeat.py` | Run pairing, BRSD and ICC, scored against an oracle |
+| `repeat.py` | Repeatability per site, year and basket, scored against an oracle |
+| `pairing.py` | Run pairing, BRSD and ICC (NumPy, pandas and Shapely only, so the lab can use it) |
+| `site.py` | The project page's data |
+| `notebooks/lab.py` | The repeatability lab (marimo) |
 
 ## Data
 
-Road geometry and milepoints: Kentucky Transportation Cabinet, All Roads LRS (public ArcGIS
-FeatureServer), fetched at run time. All measured values are simulated; no real survey data is used.
+Road geometry and milepoints: Kentucky Transportation Cabinet, All Roads LRS, public ArcGIS
+FeatureServer
+`https://services2.arcgis.com/CcI36Pduqd0OR4W9/ArcGIS/rest/services/KYTC_All_Roads/FeatureServer/0`,
+fetched at run time (the results here: 2026-10-30). All measured values are simulated; no real
+survey data is used. This project isn't affiliated with KYTC.
 
 ## License
 

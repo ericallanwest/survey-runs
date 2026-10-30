@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Same road, different day</title>
+  <meta name="description" content="Year-over-year and repeatability analysis of road-survey runs, on a simulated five-year survey program over eastern Kentucky's real road network, every step scored against known truth.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="wrap">
+    <p class="kicker"><a href="https://ericallanwest.github.io/projects/">← Projects</a></p>
+    <h1>Same road, different day</h1>
+    <p class="lede">Comparing road-survey runs across years and across repeat passes, on a simulated
+      survey program over eastern Kentucky's real road network.</p>
+  </header>
+
+  <main>
+    <section class="wrap">
+      <p>A pavement survey vehicle reads the road in short segments, here every 26.4 ft (0.005 mi), and
+        tags each one with an odometer distance and a GPS fix. Two questions come up whenever a road
+        is surveyed again:</p>
+      <ul>
+        <li><b>Has it changed since last year?</b> Every year's readings have to land on one fixed grid
+          along the road, though no two runs start in the same place, count the same distance or follow
+          the same GPS track.</li>
+        <li><b>How repeatable is the measurement?</b> The same stretch is driven several times, and the
+          runs have to be lined up position by position before they can be compared.</li>
+      </ul>
+      <p>Real survey data is proprietary, so this project simulates a five-year survey program instead:
+        two survey vehicles over the <span id="nMiles">1,861</span> miles of US and KY routes in the
+        Kentucky Transportation Cabinet's District 12, on KYTC's public road network. The road surface
+        is synthetic, a friction-like index from 0 to 100. That is what makes the exercise useful: the
+        truth is known, so every step of the analysis can be scored against it.</p>
+      <div class="kpis" id="kpis" aria-live="polite"></div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>What changed since the last survey?</h2>
+        <p>Each road is drawn twice, one line per direction: the right-hand line for travel with the
+          milepoints, the left-hand line against them. Color is the change in the reading since that
+          direction's previous survey, smoothed over 0.1 mi. Resurfacing shows up as a rise of 8 points
+          or more. Wear, the season and the two vehicles' small biases make the rest of the map shimmer.
+          Pick a year, then click a road for its profile.</p>
+        <div class="controls" role="group" aria-label="Survey year">
+          <span class="control-label">Survey</span>
+          <div class="seg" id="yearSeg"></div>
+        </div>
+      </div>
+      <div class="map-shell">
+        <div id="map" role="region" aria-label="Map of District 12 roads colored by the change in reading since the previous survey"></div>
+        <div class="map-hint">Click a road for its profile</div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="wrap" id="profile" aria-live="polite">
+        <h3 id="profileTitle">Route profile</h3>
+        <p class="sub" id="profileSub"></p>
+        <div class="legend-inline" id="profileLegend" aria-hidden="true"></div>
+        <div class="charts one" id="profileCharts"></div>
+        <p class="note">Readings aren't corrected for season or vehicle: a spring survey reads a few
+          points high, and the two vehicles differ by about 1.4 points.</p>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <h2>How well each step works</h2>
+      <p>Each number compares the analysis with the simulator's truth, over
+        <span id="nSegments">3.4 million</span> segments from <span id="nRuns">2,430</span> runs.</p>
+      <table id="scoreTable" class="score"></table>
+
+      <h3>Catching a miscalibrated odometer</h3>
+      <p>Every run's odometer distance is compared with the length of its GPS track, and the median
+        over a vehicle's runs that year estimates its odometer scale. In the simulation, SV2's odometer
+        reads 0.5% short in 2023: enough to slide its readings one 26.4-ft cell per mile.</p>
+      <div class="charts one"><div class="chart" id="dmiChart"></div></div>
+      <button class="link" id="dmiTableToggle" aria-expanded="false" aria-controls="dmiTable">Show as a table</button>
+      <table id="dmiTable" hidden></table>
+    </section>
+
+    <section class="wrap">
+      <h2>Lining up repeat runs</h2>
+      <p>Six 3-mile reference sites are driven three times by each vehicle on one day each year. Runs are
+        compared position by position, so first each run's segments are paired with the others'. The
+        longest run's segments over the site are the stations. The methods differ in how they find
+        another run's segment at each station:</p>
+      <ul class="tight">
+        <li><b>Odometer:</b> cut every run at the site's start, then pair segment by segment. Exact only
+          while the odometers agree.</li>
+        <li><b>GPS:</b> the nearest segment along the road by GPS position, in surveyed order.</li>
+        <li><b>LRS measure:</b> the same, by the measure each segment was matched to.</li>
+        <li><b>True position:</b> the same, fed the simulator's truth: the best the segments allow.</li>
+      </ul>
+      <p id="repeatSummary"></p>
+      <div class="controls">
+        <label class="control-label" for="siteSel">Site</label>
+        <select id="siteSel"></select>
+        <label class="control-label" for="yearSel">Year</label>
+        <select id="yearSel"></select>
+      </div>
+      <p class="sub" id="siteNote"></p>
+      <div class="charts one">
+        <div class="chart" id="spreadChart"></div>
+      </div>
+      <div class="controls" role="group" aria-label="Pairing method">
+        <span class="control-label">Paired by</span>
+        <div class="seg" id="methodSeg"></div>
+      </div>
+      <div class="charts one">
+        <div class="chart" id="zoomChart"></div>
+      </div>
+      <button class="link" id="zoomTableToggle" aria-expanded="false" aria-controls="zoomTable">Show as a table</button>
+      <table id="zoomTable" hidden></table>
+      <table id="repeatTable" class="score"></table>
+      <p class="note">BRSD is the mean, over 264-ft blocks, of the between-run standard deviation of
+        the runs' block means. ICC(2,k) and ICC(3,k) come from a two-way ANOVA on the positions-by-runs
+        table. (2,k) holds a run that reads high throughout against agreement and (3,k) doesn't, so the
+        vehicles' biases show as the gap between them.</p>
+    </section>
+
+    <section class="wrap">
+      <h2>Try it</h2>
+      <p>The <a href="lab/">repeatability lab</a> runs one reference site in your browser. Change the GPS
+        error, how far the two odometers disagree, the site's length and how much the road varies from cell
+        to cell, then watch which way of pairing holds up. It runs the same pairing and metric code as this
+        page, in a <a href="https://marimo.io/">marimo</a> notebook compiled to WebAssembly. It takes a few
+        seconds to start.</p>
+    </section>
+
+    <section class="wrap">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Network.</b> KYTC's All Roads layer for the seven District 12 counties, US and KY routes.
+          Each feature's measures start from zero, so they're anchored to its begin and end milepoints.
+          The <code>-010</code> twin carriageways of divided highways are digitized in their direction of
+          travel and are turned to run with the mainline's measure.</li>
+        <li><b>Truth.</b> Pavement sections about 1.2 mi long, each with its own level; wear in each
+          direction every year; resurfacing now and then (6% of sections a year); texture that wanders
+          along the road; and each cell's own local feature.</li>
+        <li><b>Simulation.</b> Routes chain across county lines into corridors, which the vehicles drive
+          in runs of up to 30 mi. Built in on purpose: odometer error per vehicle-year and per run, GPS
+          error that wanders and fixes that freeze, lane offset, slowdowns (readings under 15 mph are
+          invalid), season, partial runs, re-drives and coverage gaps.</li>
+        <li><b>Matching.</b> Each segment's GPS track is smoothed, and every route within 150 ft is
+          scored by distance and by how well its bearing matches the travel direction, with a penalty
+          for leaving the route the run is confidently on. The segment's end points give its measure
+          and direction. Where GPS fixes freeze, segments are placed by odometer distance between the
+          matched segments on either side.</li>
+        <li><b>Year-over-year grid.</b> One cell per 0.005 mi of measure, with a slot for each direction
+          of travel. A divided highway's far carriageway is paired to the nearest mainline cell. When a
+          year covers a cell twice, the latest run wins; within a run, the reading nearest the cell's
+          center wins.</li>
+        <li><b>Change detection.</b> Each cell's difference from its previous survey, as a 0.1-mi rolling
+          median; 8 points or more flags resurfacing.</li>
+        <li><b>Odometer check.</b> Odometer distance over GPS track length per run, as a median per
+          vehicle-year; flagged beyond 0.3%.</li>
+        <li><b>Repeatability.</b> Pairing as above, then BRSD and ICC per site, year and set of runs.</li>
+      </ol>
+    </section>
+
+    <section class="wrap">
+      <h2>Data and code</h2>
+      <p>Road network: Kentucky Transportation Cabinet, <a id="serviceLink" href="https://services2.arcgis.com/CcI36Pduqd0OR4W9/ArcGIS/rest/services/KYTC_All_Roads/FeatureServer/0">All Roads</a>
+        (public ArcGIS FeatureServer), fetched <span id="fetched">2026-10-30</span>. Everything measured on
+        it is simulated; no real survey data is used. This project isn't affiliated with KYTC.</p>
+      <p>Code: <a href="https://github.com/ericallanwest/survey-runs">github.com/ericallanwest/survey-runs</a>
+        (Python: NumPy, pandas, SciPy, Shapely, pyproj, PyArrow; MapLibre on this page). To rebuild
+        everything: <code>uv run survey-runs network</code>, then <code>simulate</code>, <code>analyze</code>,
+        <code>repeat</code> and <code>site</code>.</p>
+    </section>
+  </main>
+
+  <footer class="wrap">Eric West · <a href="https://ericallanwest.github.io/">ericallanwest.github.io</a></footer>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""Command line: ``survey-runs network|simulate|analyze|repeat``."""
+"""Command line: ``survey-runs network|simulate|analyze|repeat|site``."""
 from __future__ import annotations
 
 import argparse
@@ -8,8 +8,9 @@ from pathlib import Path
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="survey-runs")
-    ap.add_argument("command", choices=["network", "simulate", "analyze", "repeat"])
+    ap.add_argument("command", choices=["network", "simulate", "analyze", "repeat", "site"])
     ap.add_argument("--data", type=Path, default=Path("data"))
+    ap.add_argument("--docs", type=Path, default=Path("docs"))
     ap.add_argument("--seed", type=int, default=11)
     a = ap.parse_args(argv)
     t0 = time.time()
@@ -36,6 +37,9 @@ def main(argv=None) -> None:
     if a.command == "repeat":
         from . import repeat
         repeat.analyze(a.data, log=log)
+    if a.command == "site":
+        from . import site
+        site.build(a.data, a.docs, log=log)
 
 
 if __name__ == "__main__":
