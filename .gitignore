@@ -1,0 +1,7 @@
+# fetched network, simulated surveys and everything built from them
+data/
+docs/data/
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
